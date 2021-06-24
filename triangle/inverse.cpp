@@ -37,7 +37,7 @@ int main() {
 
     float offset = 0.5f;
 
-    Shader shader = Shader("../shaders/test_shader.vs", "../shaders/test_shader.fs");
+    Shader shader = Shader("../shaders/vertex/invert.vs", "../shaders/fragment/tricolor.fs");
 
     unsigned int VAO, VBO;
     glGenVertexArrays(1, &VAO);

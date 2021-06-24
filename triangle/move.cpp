@@ -4,12 +4,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-GLFWwindow* createWindow();
-
 int main() {
     glfwSetup();
 
-    GLFWwindow* window = createWindow("Learn OpenGL");
+    GLFWwindow* window = createWindow("Shift");
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD." << std::endl;
@@ -23,9 +21,10 @@ int main() {
          0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f
     };
 
-    float offset = 0.5f;
+    float xOffset = 0.0f;
+    float yOffset = 0.0f;
 
-    Shader shader = Shader("../shaders/test_shader.vs", "../shaders/test_shader.fs");
+    Shader shader = Shader("../shaders/vertex/cobloc.vs", "../shaders/fragment/cobloc.fs");
 
     unsigned int VAO, VBO;
     glGenVertexArrays(1, &VAO);
@@ -40,15 +39,16 @@ int main() {
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    
+    shader.use();
+    shader.setFloat("xOffset", xOffset);
+    shader.setFloat("yOffset", yOffset);
         
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-    
-        shader.use();
-        shader.setFloat("xOffset", offset);
     
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
