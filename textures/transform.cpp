@@ -95,18 +95,11 @@ int main() {
 
     stbi_image_free(data);
 
-    glm::mat4 transMat = glm::mat4(1.0f);
-    transMat = glm::rotate(transMat, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    transMat = glm::scale(transMat, glm::vec3(0.5f, 0.5f, 0.5f));
-
     // set shader program
     shader.use();
     // modify static shader uniforms
     shader.setInt("fTexture0", 0);
     shader.setInt("fTexture1", 1);
-
-    unsigned int transform = glGetUniformLocation(shader.pid, "transform");
-    glUniformMatrix4fv(transform, 1, GL_FALSE, glm::value_ptr(transMat));
 
     // initialize dynamic shader uniforms
     float mixture = 0.2f; 
@@ -133,10 +126,23 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
-        // re-set shader program and VAO just in case before drawing screen
-        shader.use();
+
+        glm::mat4 transMat = glm::mat4(1.0f);
+        transMat = glm::translate(transMat, glm::vec3(0.5f, -0.5f, 0.0f));
+        transMat = glm::rotate(transMat, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+        shader.setMat4("transform", transMat);
+
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
+
+        transMat = glm::mat4(1.0f);
+        transMat = glm::translate(transMat, glm::vec3(-0.5f, 0.5f, 0.0f));
+        float scaleValue = abs(sin(glfwGetTime()));
+        transMat = glm::scale(transMat, glm::vec3(scaleValue, scaleValue, scaleValue));
+        shader.setMat4("transform", transMat);
+        
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
         // swap window buffers and grab user input 
         glfwSwapBuffers(window);
         glfwPollEvents();
