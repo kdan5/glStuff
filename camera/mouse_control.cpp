@@ -11,8 +11,12 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
+void mouse_callback(GLFWwindow* window, double xPos, double yPos);
+
 float yaw = -90.0f;
 float pitch = 0.0f;
+
+bool firstMouse = true;
 
 // camera coordinates
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -20,10 +24,13 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // transform euler angles into coordinates
-glm::vec3 direction = glm::vec3((cos(glm::radians(yaw)) * cos(glm::radians(pitch)), sin(glm::radians(pitch)), sin(glm::radians(yaw)) * cos(glm::radians(pitch))));
+glm::vec3 direction = glm::vec3(cos(glm::radians(yaw)) * cos(glm::radians(pitch)), sin(glm::radians(pitch)), sin(glm::radians(yaw)) * cos(glm::radians(pitch)));
 
 float delta = 0.0f;
 float lastFrame = 0.0f;
+
+float lastXPos = 400.0f;
+float lastYPos = 300.0f;
 
 int main() {
     // create opengl context
@@ -37,6 +44,7 @@ int main() {
     }
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     // compile glsl shader
     Shader shader = Shader("../shaders/vertex/cube.vs", "../shaders/fragment/camera.fs");
@@ -228,4 +236,35 @@ int main() {
     // close window, kill threads, and release resources 
     glfwTerminate();
     return 0;
+}
+
+void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
+    if (firstMouse) {
+        lastXPos = xPos;
+        lastYPos = yPos;
+        firstMouse = false;
+    }
+
+    float xOffset = xPos - lastXPos;
+    float yOffset = yPos - lastYPos;
+
+    lastXPos = xPos;
+    lastYPos = yPos;
+
+    const float sensitivity = 0.1f;
+    xOffset *= sensitivity;
+    yOffset *= sensitivity;
+
+    yaw += xOffset;
+    pitch += yOffset;
+
+    if (pitch > 89.0f) {
+        pitch = 89.0f;
+    }
+    if (pitch < -89.0f) {
+        pitch = -89.0f;
+    }
+
+    glm::vec3 direction = glm::vec3(cos(glm::radians(yaw)) * cos(glm::radians(pitch)), sin(glm::radians(pitch)), sin(glm::radians(yaw)) * cos(glm::radians(pitch))); 
+    cameraFront = glm::normalize(direction);
 }
