@@ -179,7 +179,7 @@ int main() {
         lastFrame = currentFrame;
 
 	// check for user input
-	processInput(window);
+	processWindowInput(window);
 
         cameraSpeed = 2.5f * delta;
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
@@ -249,7 +249,7 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
     }
 
     float xOffset = xPos - lastXPos;
-    float yOffset = yPos - lastYPos;
+    float yOffset = lastYPos - yPos;   
 
     lastXPos = xPos;
     lastYPos = yPos;

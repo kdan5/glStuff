@@ -1,7 +1,4 @@
 #include "glinit.h"
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <iostream>
 
 void glfwSetup() {
     glfwInit();
@@ -22,21 +19,10 @@ GLFWwindow* createWindow(const char* title = "") {
     }
 
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     return window;
 }
 
 bool glLoad() {
     return (gladLoadGLLoader((GLADloadproc)glfwGetProcAddress));
-}
-
-void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == (GLFW_PRESS)) {
-        glfwSetWindowShouldClose(window, true);
-    }
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
 }
 
