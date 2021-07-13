@@ -10,7 +10,7 @@
 const unsigned int WINDOW_WIDTH = 800;
 const unsigned int WINDOW_HEIGHT = 600;
 
-void glfwSetup();
+void setupGLFWContext();
 GLFWwindow* createWindow(const char* title);
 bool glLoad();
 
