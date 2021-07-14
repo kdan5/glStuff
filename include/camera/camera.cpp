@@ -42,6 +42,8 @@ glm::mat4 Camera::lookAt(glm::vec3 position, glm::vec3 target, glm::vec3 worldUp
     rotation[0][2] = zaxis.x;
     rotation[1][2] = zaxis.y;
     rotation[2][2] = zaxis.z;
+
+    return rotation * translation;
 }
 
 void Camera::processKeyboard(Camera_Movement direction, float delta) {
@@ -58,8 +60,6 @@ void Camera::processKeyboard(Camera_Movement direction, float delta) {
     if (direction == RIGHT) {
         Position += Right * velocity;
     }
-
-    Position.y = 0.0f;
 }
 
 void Camera::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {

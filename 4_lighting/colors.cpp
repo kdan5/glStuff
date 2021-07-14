@@ -1,7 +1,9 @@
 #include <utils/glinit.h>
-#include <objShaders/shader.h>
+#include <shaders/shader.h>
 #include <camera/camera.h>
 #define GLFW_INCLUDE_NONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
@@ -11,13 +13,13 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
 // window settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCREEN_WIDTH = 800;
+const unsigned int SCREEN_HEIGHT = 600;
 
 // camera setup
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float prevXPos = SCR_WIDTH / 2.0f;
-float prevYPos = SCR_HEIGHT / 2.0f;
+float prevXPos = SCREEN_WIDTH / 2.0f;
+float prevYPos = SCREEN_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // timing
@@ -32,6 +34,13 @@ int main() {
     setupGLFWContext();
     // create window
     GLFWwindow* window = createWindow("Colors");
+
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     // load opengl function pointers
     if(!glLoad()) {
         std::cout << "Failed to initialize GLAD." << std::endl;
@@ -40,8 +49,8 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
     // compile glsl shaders
-    Shader objShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragments/colors.fs");
-    Shader lightShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragments/light_source.fs");
+    Shader objShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/ambient.fs");
+    Shader lightShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
     // vertex coordinates
     float vertices[] = {
 	-0.5f, -0.5f, -0.5f,
@@ -124,10 +133,62 @@ int main() {
 
         // activate objShader 
         objShader.use();
-        objShader.setVec3("objColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        objShader.vetVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));     
-         
+        objShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
+        objShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));     
+        // projection/view matrices
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);         
+        glm::mat4 view = camera.getViewMatrix();
+        objShader.setMat4("projection", projection);
+        objShader.setMat4("view", view);
+        // world transformation
+        glm::mat4 model = glm::mat4(1.0f);
+        objShader.setMat4("model", model);
+
+        // draw cube
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // set lighting shader
+        lightShader.use();
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
+        lightShader.setMat4("model", model);
+
+        // draw light cube
+        glBindVertexArray(lightVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
+
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteVertexArrays(1, &lightVAO);
+    glDeleteBuffers(1, &VBO);
+
+    glfwTerminate();
+    return 0;
+}
+
+/**
+ * Process all user input.
+ */
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(FORWARD, delta);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(BACKWARD, delta);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(LEFT, delta);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(RIGHT, delta);
 }
 
 /**
