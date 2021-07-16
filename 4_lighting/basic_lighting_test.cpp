@@ -33,7 +33,7 @@ int main() {
     // create opengl context
     setupGLFWContext();
     // create window
-    GLFWwindow* window = createWindow("Specular Lighting");
+    GLFWwindow* window = createWindow("Basic Light Show");
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -49,8 +49,10 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
     // compile glsl shaders
-    Shader objShader = Shader("../shaders/vertex/diffuse.vs", "../shaders/fragment/specular.fs");
-    Shader lightShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
+    Shader specularShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/specular.fs");
+    Shader diffuseShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/diffuse.fs");
+    Shader ambientShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/ambient.fs");
+    Shader lightSourceShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
     // vertex coordinates
     float vertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -96,7 +98,11 @@ int main() {
 	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
-
+    glm::vec3 cubePos[] = {
+        glm::vec3(-2.0f, 0.0f, 0.0f),
+        glm::vec3( 0.0f, 0.0f, 0.0f),
+        glm::vec3( 2.0f, 0.0f, 0.0f)
+    };
 
     // initialize buffer and array objects for cube
     unsigned int VBO, VAO; 
@@ -114,7 +120,7 @@ int main() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // initialize VAO for light object
+    // initialize VAO for light source object
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
     // bind VBO to lightVAO
@@ -137,33 +143,38 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-        // activate objShader 
-        objShader.use();
-        objShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
-        objShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));     
-        objShader.setVec3("lightPos", lightPos);
-        objShader.setVec3("viewPos", camera.Position);
+        // activate specularShader 
+        specularShader.use();
+        specularShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
+        specularShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));     
+        specularShader.setVec3("lightPos", lightPos);
+        specularShader.setVec3("viewPos", camera.Position);
         // projection/view matrices
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);         
         glm::mat4 view = camera.getViewMatrix();
-        objShader.setMat4("projection", projection);
-        objShader.setMat4("view", view);
-        // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
-        objShader.setMat4("model", model);
+        specularShader.setMat4("projection", projection);
+        specularShader.setMat4("view", view);
 
         // draw cube
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glm::mat4 model = glm::mat4(1.0f);
+        // world transformation
+        for (unsigned int i = 0; i < 3; i++) {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePos[i]);
+            specularShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         // set lighting shader
-        lightShader.use();
-        lightShader.setMat4("projection", projection);
-        lightShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        lightSourceShader.use();
+        lightSourceShader.setMat4("projection", projection);
+        lightSourceShader.setMat4("view", view);
         model = glm::mat4(1.0f);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
-        lightShader.setMat4("model", model);
+        lightSourceShader.setMat4("model", model);
 
         // draw light cube
         glBindVertexArray(lightVAO);
