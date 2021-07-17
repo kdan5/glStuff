@@ -12,8 +12,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
-const float PI = 3.14159;
-
 // window settings
 const unsigned int SCREEN_WIDTH = 800;
 const unsigned int SCREEN_HEIGHT = 600;
@@ -29,13 +27,13 @@ float delta = 0.0f;
 float prevFrame = 0.0f;
 
 // light source position
-glm::vec3 lightPos(0.0f, 3.0f, -2.0f);
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 int main() {
     // create opengl context
     setupGLFWContext();
     // create window
-    GLFWwindow* window = createWindow("Basic Light Show");
+    GLFWwindow* window = createWindow("Gouraud Lighting");
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -50,13 +48,9 @@ int main() {
     }
 
     glEnable(GL_DEPTH_TEST);
-
     // compile glsl shaders
-    Shader phongShader = Shader("../shaders/vertex/normals_view.vs", "../shaders/fragment/phong_view.fs");
-    Shader specularShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/specular.fs");
-    Shader diffuseShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/diffuse.fs");
-    Shader ambientShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/ambient.fs");
-    Shader lightSourceShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
+    Shader objShader = Shader("../shaders/vertex/gouraud.vs", "../shaders/fragment/gouraud.fs");
+    Shader lightShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
     // vertex coordinates
     float vertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -102,11 +96,7 @@ int main() {
 	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
-    glm::vec3 cubePos[] = {
-        glm::vec3(-2.0f, 1.0f, 0.0f),
-        glm::vec3( 0.0f, 1.0f, 0.0f),
-        glm::vec3( 2.0f, 1.0f, 0.0f)
-    };
+
 
     // initialize buffer and array objects for cube
     unsigned int VBO, VAO; 
@@ -124,7 +114,7 @@ int main() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // initialize VAO for light source object
+    // initialize VAO for light object
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
     // bind VBO to lightVAO
@@ -133,9 +123,6 @@ int main() {
     // light position attribute (same vertices as the cube)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // color of rendered object and light source
-    glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
-    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
     while(!glfwWindowShouldClose(window)) {
         // framerate timing logic
@@ -146,89 +133,40 @@ int main() {
         // input
         processInput(window);
 
-        // render window 
+        // render window color
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-        // setup ambient shader
-        ambientShader.use();
-        ambientShader.setVec3("objColor", objColor);
-        ambientShader.setVec3("lightColor", lightColor);
-
-        // setup diffuse shader
-        diffuseShader.use();
-        diffuseShader.setVec3("objColor", objColor);
-        diffuseShader.setVec3("lightColor", lightColor);
-        diffuseShader.setVec3("lightPos", lightPos);
-        
-        // setup specular shader
-        specularShader.use();
-        specularShader.setVec3("objColor", objColor);
-        specularShader.setVec3("lightColor", lightColor);
-        specularShader.setVec3("lightPos", lightPos);
-        specularShader.setVec3("viewPos", camera.Position);
-
-        phongShader.use();
-        phongShader.setVec3("objColor", objColor);
-        phongShader.setVec3("lightColor", lightColor);
-        phongShader.setVec3("lightPos", lightPos);
-        phongShader.setVec3("viewPos", camera.Position);
-
-        // projection and view matrices
+        // activate objShader 
+        objShader.use();
+        objShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
+        objShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));     
+        objShader.setVec3("lightPos", lightPos);
+        objShader.setVec3("viewPos", camera.Position);
+        // projection/view matrices
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);         
         glm::mat4 view = camera.getViewMatrix();
-
-        // bind vertex array for cube object
-        glBindVertexArray(VAO);
-
-        // world transformations
-        ambientShader.use();
-        ambientShader.setMat4("projection", projection);
-        ambientShader.setMat4("view", view);
+        objShader.setMat4("projection", projection);
+        objShader.setMat4("view", view);
+        // world transformation
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePos[0]);
-        ambientShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        diffuseShader.use();
-        diffuseShader.setMat4("projection", projection);
-        diffuseShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePos[1]);
-        diffuseShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        objShader.setMat4("model", model);
 
-        specularShader.use();
-        specularShader.setMat4("projection", projection);
-        specularShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePos[2]);
-        specularShader.setMat4("model", model);
+        // draw cube
+        glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        phongShader.use();
-        phongShader.setMat4("projection", projection);
-        phongShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
-        phongShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        // bind vertex array for light source object
-        glBindVertexArray(lightVAO);
 
         // set lighting shader
-        lightSourceShader.use();
-        lightSourceShader.setMat4("projection", projection);
-        lightSourceShader.setMat4("view", view);
+        lightShader.use();
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
         model = glm::mat4(1.0f);
-        float t = glfwGetTime() / 2.0f;
-        lightPos.x = 3.0f * cos(3.0f * t);
-        lightPos.y = 0.0f;
-        lightPos.z = 3.0f * sin(3.0f * t);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
-        lightSourceShader.setMat4("model", model);
+        lightShader.setMat4("model", model);
+
+        // draw light cube
+        glBindVertexArray(lightVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glfwSwapBuffers(window);
@@ -251,24 +189,14 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.processKeyboard(FORWARD, delta);
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         camera.processKeyboard(BACKWARD, delta);
-    }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         camera.processKeyboard(LEFT, delta);
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.processKeyboard(RIGHT, delta);
-    }
-    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
-        camera.processKeyboard(UP, delta);
-    }
-    if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
-        camera.processKeyboard(DOWN, delta);
-    }
 }
 
 /**
