@@ -12,6 +12,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
+const float PI = 3.14159;
+
 // window settings
 const unsigned int SCREEN_WIDTH = 800;
 const unsigned int SCREEN_HEIGHT = 600;
@@ -129,6 +131,9 @@ int main() {
     // light position attribute (same vertices as the cube)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    // color of rendered object and light source
+    glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
+    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
     while(!glfwWindowShouldClose(window)) {
         // framerate timing logic
@@ -139,39 +144,69 @@ int main() {
         // input
         processInput(window);
 
-        // render window color
+        // render window 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-        // activate specularShader 
+        // setup ambient shader
+        ambientShader.use();
+        ambientShader.setVec3("objColor", objColor);
+        ambientShader.setVec3("lightColor", lightColor);
+
+        // setup diffuse shader
+        diffuseShader.use();
+        diffuseShader.setVec3("objColor", objColor);
+        diffuseShader.setVec3("lightColor", lightColor);
+        diffuseShader.setVec3("lightPos", lightPos);
+        
+        // setup specular shader
         specularShader.use();
-        specularShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
-        specularShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));     
+        specularShader.setVec3("objColor", objColor);
+        specularShader.setVec3("lightColor", lightColor);
         specularShader.setVec3("lightPos", lightPos);
         specularShader.setVec3("viewPos", camera.Position);
-        // projection/view matrices
+
+        // projection and view matrices
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);         
         glm::mat4 view = camera.getViewMatrix();
+
+        // bind vertex array for cube object
+        glBindVertexArray(VAO);
+
+        // world transformations
+        ambientShader.use();
+        ambientShader.setMat4("projection", projection);
+        ambientShader.setMat4("view", view);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, cubePos[0]);
+        ambientShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        diffuseShader.use();
+        diffuseShader.setMat4("projection", projection);
+        diffuseShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, cubePos[1]);
+        diffuseShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        specularShader.use();
         specularShader.setMat4("projection", projection);
         specularShader.setMat4("view", view);
-
-        // draw cube
-        glBindVertexArray(VAO);
-        glm::mat4 model = glm::mat4(1.0f);
-        // world transformation
-        for (unsigned int i = 0; i < 3; i++) {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePos[i]);
-            specularShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, cubePos[2]);
+        specularShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // set lighting shader
-        model = glm::mat4(1.0f);
         lightSourceShader.use();
         lightSourceShader.setMat4("projection", projection);
         lightSourceShader.setMat4("view", view);
         model = glm::mat4(1.0f);
+        float t = glfwGetTime() / 2.0f;
+        lightPos.x = 3.0f * cos(PI * t);
+        lightPos.y = 3.0f * sin(2.0f * PI * t);
+        lightPos.z = sin(PI * t);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
         lightSourceShader.setMat4("model", model);

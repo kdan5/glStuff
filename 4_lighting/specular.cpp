@@ -49,7 +49,7 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
     // compile glsl shaders
-    Shader objShader = Shader("../shaders/vertex/diffuse.vs", "../shaders/fragment/specular.fs");
+    Shader objShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/specular.fs");
     Shader lightShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
     // vertex coordinates
     float vertices[] = {
