@@ -52,7 +52,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     // compile glsl shaders
-    Shader phongShader = Shader("../shaders/vertex/normals_view.vs", "../shaders/fragment/phong_view.fs");
+    Shader phongShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/material_phong.fs");
     Shader specularShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/specular.fs");
     Shader diffuseShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/diffuse.fs");
     Shader ambientShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/ambient.fs");
@@ -169,7 +169,10 @@ int main() {
         specularShader.setVec3("viewPos", camera.Position);
 
         phongShader.use();
-        phongShader.setVec3("objColor", objColor);
+        phongShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+        phongShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+        phongShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        phongShader.setFloat("material.shininess", 32.0f);
         phongShader.setVec3("lightColor", lightColor);
         phongShader.setVec3("lightPos", lightPos);
         phongShader.setVec3("viewPos", camera.Position);
