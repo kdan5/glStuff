@@ -52,12 +52,19 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     // compile glsl shaders
-    Shader phongShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/material_phong.fs");
-    Shader specularShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/specular.fs");
-    Shader diffuseShader = Shader("../shaders/vertex/normals.vs", "../shaders/fragment/diffuse.fs");
-    Shader ambientShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/ambient.fs");
+    Shader objShaders[] = {
+        Shader("../shaders/vertex/normals.vs", "../shaders/fragment/material.fs"),
+        Shader("../shaders/vertex/normals.vs", "../shaders/fragment/phong.fs"),
+        Shader("../shaders/vertex/normals_model.vs", "../shaders/fragment/phong_model.fs"),
+        Shader("../shaders/vertex/normals_model.vs", "../shaders/fragment/specular.fs"),
+        Shader("../shaders/vertex/normals_model.vs", "../shaders/fragment/diffuse.fs"),
+        Shader("../shaders/vertex/colors.vs", "../shaders/fragment/ambient.fs")
+    };
+
     Shader lightSourceShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
+
     // vertex coordinates
+
     float vertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
@@ -103,9 +110,12 @@ int main() {
     };
 
     glm::vec3 cubePos[] = {
-        glm::vec3(-2.0f, 1.0f, 0.0f),
-        glm::vec3( 0.0f, 1.0f, 0.0f),
-        glm::vec3( 2.0f, 1.0f, 0.0f)
+        glm::vec3(-2.0f,  1.0f,  0.0f),
+        glm::vec3( 0.0f,  1.0f,  0.0f),
+        glm::vec3( 2.0f,  1.0f,  0.0f),
+        glm::vec3( 2.0f, -1.0f,  0.0f),
+        glm::vec3( 0.0f, -1.0f,  0.0f),
+        glm::vec3(-2.0f, -1.0f,  0.0f) 
     };
 
     // initialize buffer and array objects for cube
@@ -151,71 +161,74 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
         // setup ambient shader
-        ambientShader.use();
-        ambientShader.setVec3("objColor", objColor);
-        ambientShader.setVec3("lightColor", lightColor);
+        objShaders[5].use();
+        objShaders[5].setVec3("objColor", objColor);
+        objShaders[5].setVec3("lightColor", lightColor);
 
         // setup diffuse shader
-        diffuseShader.use();
-        diffuseShader.setVec3("objColor", objColor);
-        diffuseShader.setVec3("lightColor", lightColor);
-        diffuseShader.setVec3("lightPos", lightPos);
+        objShaders[4].use();
+        objShaders[4].setVec3("objColor", objColor);
+        objShaders[4].setVec3("lightColor", lightColor);
+        objShaders[4].setVec3("lightPos", lightPos);
         
         // setup specular shader
-        specularShader.use();
-        specularShader.setVec3("objColor", objColor);
-        specularShader.setVec3("lightColor", lightColor);
-        specularShader.setVec3("lightPos", lightPos);
-        specularShader.setVec3("viewPos", camera.Position);
+        objShaders[3].use();
+        objShaders[3].setVec3("objColor", objColor);
+        objShaders[3].setVec3("lightColor", lightColor);
+        objShaders[3].setVec3("lightPos", lightPos);
+        objShaders[3].setVec3("viewPos", camera.Position);
+        
+        // setup phong shaders
+        objShaders[2].use();
+        objShaders[2].setVec3("objColor", objColor); 
+        objShaders[2].setVec3("lightColor", lightColor);
+        objShaders[2].setVec3("lightPos", lightPos);
+        objShaders[2].setVec3("viewPos", camera.Position);
 
-        phongShader.use();
-        phongShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-        phongShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-        phongShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        phongShader.setFloat("material.shininess", 32.0f);
-        phongShader.setVec3("lightColor", lightColor);
-        phongShader.setVec3("lightPos", lightPos);
-        phongShader.setVec3("viewPos", camera.Position);
+        // setup view shader (same as model phong shader)
+        objShaders[1].use();
+        objShaders[1].setVec3("objColor", objColor); 
+        objShaders[1].setVec3("lightColor", lightColor);
+        objShaders[1].setVec3("lightPos", lightPos);
+        objShaders[1].setVec3("viewPos", camera.Position);
+
+        // material shader
+        objShaders[0].use();
+        objShaders[0].setFloat("material.shine", 32.0f);
+        glm::vec3 materialAmbient = glm::vec3(1.0f, 0.5f, 0.31f);
+        glm::vec3 materialDiffuse = glm::vec3(1.0f, 0.5f, 0.31f);
+        glm::vec3 materialSpecular = glm::vec3(0.5f, 0.5f, 0.5f);
+        objShaders[0].setVec3("material.ambient", materialAmbient);
+        objShaders[0].setVec3("material.diffuse", materialDiffuse);
+        objShaders[0].setVec3("material.specular", materialSpecular);
+        objShaders[0].setVec3("light.position", lightPos);
+        objShaders[0].setVec3("viewPos", camera.Position);
+        glm::vec3 lightSource = glm::vec3(1.0f);
+        glm::vec3 diffuseSource = lightSource * glm::vec3(0.5f);
+        glm::vec3 ambientSource = diffuseSource * glm::vec3(0.2f);
+        glm::vec3 specularSource = glm::vec3(1.0f, 1.0f, 1.0f);
+        objShaders[0].setVec3("light.ambient", ambientSource);
+        objShaders[0].setVec3("light.diffuse", diffuseSource);
+        objShaders[0].setVec3("light.specular", specularSource);
 
         // projection and view matrices
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);         
         glm::mat4 view = camera.getViewMatrix();
+        glm::mat4 model = glm::mat4(1.0f);
 
         // bind vertex array for cube object
         glBindVertexArray(VAO);
 
         // world transformations
-        ambientShader.use();
-        ambientShader.setMat4("projection", projection);
-        ambientShader.setMat4("view", view);
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePos[0]);
-        ambientShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        diffuseShader.use();
-        diffuseShader.setMat4("projection", projection);
-        diffuseShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePos[1]);
-        diffuseShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        specularShader.use();
-        specularShader.setMat4("projection", projection);
-        specularShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePos[2]);
-        specularShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        phongShader.use();
-        phongShader.setMat4("projection", projection);
-        phongShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
-        phongShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (unsigned int i = 0; i < 6; i++) {
+            Shader shader = objShaders[i];
+            shader.use();
+            shader.setMat4("projection", projection);
+            shader.setMat4("view", view);
+            model = glm::translate(glm::mat4(1.0f), cubePos[i]);
+            shader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        } 
 
         // bind vertex array for light source object
         glBindVertexArray(lightVAO);
