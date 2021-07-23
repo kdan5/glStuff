@@ -94,6 +94,30 @@ int main() {
 	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
     };
 
+    // initialize buffer and array object for cube
+    unsigned int VAO, VBO;
+    glGenBuffers(1, &VBO);
+    glGenVertexArrays(1, &VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindVertexArray(VAO);
+    // configure position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    
+    // initialize VAO for light object
+    unsigned int lightVAO;
+    glGenVertexArrays(1, &lightVAO);
+
+    glfwTerminate();
     return 0;
 }
 
