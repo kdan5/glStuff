@@ -48,6 +48,9 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
+    Shader objShader = Shader("../shaders/vertex/lit_texture.vs", "../shaders/fragment/material.fs");
+    Shader lightShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
+
     // vertex coordinates
     vertices[] = {
 	// positions          // normals           // texture coords
@@ -116,6 +119,31 @@ int main() {
     // initialize VAO for light object
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // render loop
+    while(!glfwWindowShouldClose(window)) {
+        // framerate timing logic
+        float currentFrame = glfwGetTime();
+        delta = currentFrame - prevFrame;
+        prevFrame = currentFrame;
+
+        // peripheral input
+        processInput(window);
+
+        // render window color
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT || GL_DEPTH_BUFFER_BIT);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteVertexArrays(1, &lightVAO);
+    glDeleteBuffers(1, &VBO);
 
     glfwTerminate();
     return 0;
