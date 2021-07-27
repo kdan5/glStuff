@@ -6,7 +6,7 @@ layout (location=2) in vec2 vTexCoords;
 out vec3 fragPos;
 out vec3 normal;
 out vec3 lightView;
-out vec3 texCoords;
+out vec2 texCoords;
 
 uniform vec3 lightPos;
 

@@ -24,6 +24,8 @@ float prevXPos = SCREEN_WIDTH / 2.0f;
 float prevYPos = SCREEN_HEIGHT / 2.0f;
 bool firstMouse = true;
 
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
 // timing
 float delta = 0.0f;
 float prevFrame = 0.0f;
@@ -52,7 +54,7 @@ int main() {
     Shader lightShader = Shader("../shaders/vertex/colors.vs", "../shaders/fragment/light_source.fs");
 
     // vertex coordinates
-    vertices[] = {
+    float vertices[] = {
 	// positions          // normals           // texture coords
 	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
 	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
@@ -123,6 +125,35 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // initialize and assign textures
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    
+    glBindTexture(GL_TEXTURE_2D, texture);
+   
+    // specify texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // flip image data
+    stbi_set_flip_vertically_on_load(true);
+    // initialize and assign texture information
+    int width;
+    int height;
+    int nChannels;
+    unsigned char *data = stbi_load("../resources/crate.png", &width, &height, &nChannels, 0);
+    // generate texture and mipmap
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(data);
+
+    objShader.use();
+    objShader.setInt("texture", 0);
+
+    glEnable(GL_DEPTH_TEST);
+
     // render loop
     while(!glfwWindowShouldClose(window)) {
         // framerate timing logic
@@ -135,7 +166,31 @@ int main() {
 
         // render window color
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT || GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+        objShader.setMat4("projection", projection);
+        glm::mat4 view = camera.getViewMatrix();
+        objShader.setMat4("view", view);
+
+        glBindVertexArray(VAO);
+        glm::mat4 model = glm::mat4(1.0f);
+        objShader.setMat4("model", model);
+ 
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        lightShader.use();
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
+        lightShader.setMat4("model", model); 
+
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -152,8 +207,7 @@ int main() {
 /**
  * Process all user input.
  */
-void processInput(GLFWwindow *window)
-{
+void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -170,8 +224,7 @@ void processInput(GLFWwindow *window)
 /**
  * GLFW window size callback.
  */
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
@@ -181,8 +234,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 /**
  * GLFW mouse/trackpad callback.
  */
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse)
     {
         prevXPos = xpos;
@@ -197,4 +249,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     prevYPos = ypos;
 
     camera.processMouseMovement(xoffset, yoffset, true);
+}
+
+/**
+ * GLFW mouse scroll callback.
+ */
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    camera.processMouseScroll(yoffset);
 }
